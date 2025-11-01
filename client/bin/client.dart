@@ -16,7 +16,7 @@ void main(List<String> args) async {
       final response = await HttpClient().getUrl(uri)
           .then((req) => req.close());
       final body = await utf8.decodeStream(response);
-      print('📨 서버 응답: $body');
+      print('📨 서버 응답dd: $body');
     } else {
       print('알 수 없는 명령: $command');
     }

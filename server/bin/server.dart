@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:server/local_database.dart';
 
 void main() async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 8080);
@@ -22,8 +23,8 @@ void main() async {
         ..statusCode = HttpStatus.ok
         ..write(jsonEncode({"ingredient": ingredients}))
         ..close();
-    } 
-    
+    }
+
     else if (request.method == 'POST' && request.uri.path == '/preference') {
       try {
         // 요청 body 읽기
@@ -35,35 +36,24 @@ void main() async {
 
         print("📩 Received preference: $prefs");
 
-        // 고정된 레시피 응답
-        final recipeResponse = {
-          "recipeId": 1,
-          "name": "계란볶음밥",
-          "timeToCook": 15,
-          "ingredient": ["계란", "밥"],
-          "description": "계란을 이용한 밥 요리입니다.",
-          "imageUrl": "http://fiscom/300/400",
-          "process": [
-            "프라이팬에 기름을 부어 달군다.",
-            "계란과 밥을 넣어 볶는다.",
-            "기호에 맞게 양념을 추가한다."
-          ]
-        };
+        // ✅ TODO: 선호도 분석 로직 자리 (지금은 mock)
+        // 예: prefs에 따라 recipe 추천 알고리즘 만들 수 있음
+        // 지금은 첫 번째 공식 레시피 추천 (임시)
+        final recipe = aiMadeRecipe;
 
         request.response
           ..headers.contentType = ContentType.json
           ..statusCode = HttpStatus.ok
-          ..write(jsonEncode(recipeResponse))
+          ..write(jsonEncode(recipe))
           ..close();
       } catch (e) {
-        // JSON parse 실패 등 오류 캐치
         request.response
           ..statusCode = HttpStatus.badRequest
           ..write(jsonEncode({"error": "Invalid JSON format"}))
           ..close();
       }
     }
-    
+
     else {
       request.response
         ..statusCode = HttpStatus.notFound
@@ -71,4 +61,10 @@ void main() async {
         ..close();
     }
   }
+}
+
+Map<String, dynamic> removeRecipeType(Map<String, dynamic> recipe) {
+  final newRecipe = Map<String, dynamic>.from(recipe);
+  newRecipe.remove("recipeType");
+  return newRecipe;
 }

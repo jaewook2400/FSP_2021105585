@@ -44,11 +44,11 @@ final List<Map<String, dynamic>> recipes = [
 //사용자 정보를 나타내는 곳
 final Map<String, dynamic> userInfo = {
     'user1': {
-        'likedRecipeId': [1, 2],
-        'recordedRecipe': [
+        'likedRecipeId': [1, 2], //recordedRecipe는 좋아요를 누를 수 없음. 당연함 내가 먹은 음식을 기록하는 취지의 탭이기 때문에 선호도는 중요하지 않음.
+        'recordedRecipe': <Map<String, dynamic>>[
             {
                 "recipeId": 101,
-                "name": "계란볶음밥",
+                "name": "계란굴소스볶음밥",
                 "timeToCook": 15,
                 "ingredient": ["계란", "밥"],
                 "description": "계란을 이용한 밥 요리입니다.",
@@ -61,7 +61,7 @@ final Map<String, dynamic> userInfo = {
             },
             {
                 "recipeId": 102,
-                "name": "김치볶음밥",
+                "name": "김치삼겹살볶음밥",
                 "timeToCook": 20,
                 "ingredient": ["김치", "밥"],
                 "description": "김치를 이용한 밥 요리입니다.",
@@ -79,7 +79,7 @@ final Map<String, dynamic> userInfo = {
 //AI가 만들어준 레시피라고 가정하기(지금은 목데이터 사용)
 final Map<String, dynamic> aiMadeRecipe = {
     "recipeId": 30,
-    "name": "계란볶음밥",
+    "name": "AI표 계란볶음밥",
     "timeToCook": 15,
     "ingredient": ["계란", "밥"],
     "description": "계란을 이용한 밥 요리입니다.",

@@ -1,66 +1,325 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
+const String baseUrl = 'http://localhost:8080';
+const String apiBase = '$baseUrl/api';
+
+String? _token; // 로그인/회원가입 후 저장되는 토큰 (Authorization에 사용)
 
 void main(List<String> args) async {
-  while (true) {
-    stdout.write('> '); // 프롬프트 표시
-    String? command = stdin.readLineSync();
+  if (args.isEmpty) {
+    _printUsage();
+    exit(1);
+  }
 
-    if (command == null || command.trim() == 'exit') {
-      print('프로그램 종료');
-      break;
-    }
+  final cmd = args[0];
+  try {
+    switch (cmd) {
+    // ---------- 온보딩 ----------
+      case 'register':
+      // register <username> <password>
+        _requireArgs(args, 3);
+        await register(args[1], args[2]);
+        break;
 
-    if (command == 'hello') {
-      final uri = Uri.parse('http://localhost:8080/hello');
-      final response = await HttpClient().getUrl(uri)
-          .then((req) => req.close());
-      final body = await utf8.decodeStream(response);
-      print('📨 서버 응답: $body');
-    }
+      case 'login':
+      // login <username> <password>
+        _requireArgs(args, 3);
+        await login(args[1], args[2]);
+        break;
 
-    else if (command == 'ingredient') {
-      final uri = Uri.parse('http://localhost:8080/ingredient');
-      final response = await HttpClient().getUrl(uri)
-          .then((req) => req.close());
-      final body = await utf8.decodeStream(response);
-      print('📨 서버 응답: $body');
-    } 
+    // ---------- 홈 ----------
+      case 'ingredient':
+        await getIngredients();
+        break;
 
-    else if (command == 'preference') {
-      await sendPreferenceRequest();
+      case 'preference':
+      // preference true,false,true,false,true,false,true,false,true,false
+        _requireArgs(args, 2);
+        final pref = args[1]
+            .split(',')
+            .map((e) => e.trim().toLowerCase() == 'true')
+            .toList();
+        await postPreference(pref);
+        break;
+
+      case 'unselect':
+      // unselect <recipeId>
+        _requireArgs(args, 2);
+        await deleteHomeSelection(int.parse(args[1]));
+        break;
+
+    // ---------- 레시피 ----------
+      case 'recipes':
+        await listRecipes();
+        break;
+
+      case 'recipe':
+      // recipe <id>
+        _requireArgs(args, 2);
+        await getRecipe(int.parse(args[1]));
+        break;
+
+      case 'like':
+      // like <id>
+        _requireArgs(args, 2);
+        await likeRecipe(int.parse(args[1]));
+        break;
+
+      case 'unlike':
+      // unlike <id>
+        _requireArgs(args, 2);
+        await unlikeRecipe(int.parse(args[1]));
+        break;
+
+      case 'liked':
+        await listLikedRecipes();
+        break;
+
+    // ---------- 기록 ----------
+      case 'recorded':
+        await listRecordedRecipes();
+        break;
+
+      case 'record-del':
+        await deleteRecordedRecipe(args);
+        break;
+
+      case 'addrecord':
+      // addrecord '{"name":"내 요리","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://example/300/400","process":["1","2"]}'
+        _requireArgs(args, 2);
+        final payload = jsonDecode(args[1]) as Map<String, dynamic>;
+        await addRecordedRecipe(payload);
+        break;
+
+    // ---------- 이미지 ----------
+      case 'imageurl':
+        await createImageUrl();
+        break;
+
+    // ---------- 토큰 ----------
+      case 'token':
+        if (args.length >= 2) {
+          _token = args[1];
+          print('🔑 token set: $_token');
+        } else {
+          print('🔑 token: $_token');
+        }
+        break;
+
+      default:
+        print('알 수 없는 명령: $cmd');
+        _printUsage();
+        exit(2);
     }
-    
-    else {
-      print('알 수 없는 명령: $command');
-    }
+  } catch (e, st) {
+    print('❌ Error: $e\n$st');
+    exit(10);
   }
 }
 
+// -------------- 온보딩 --------------
 
-Future<void> sendPreferenceRequest() async {
-  final uri = Uri.parse('http://localhost:8080/preference');
+Future<void> register(String username, String password) async {
+  final res = await _post('$apiBase/register', {'username': username, 'password': password});
+  _pretty(res);
+  _token = res['token']?.toString();
+}
 
-  // ✅ 보낼 JSON 데이터
-  final preferenceData = {
-    "preference": [true, false, true, false, true, false, true, false, true, false]
-  };
+Future<void> login(String username, String password) async {
+  final res = await _post('$apiBase/login', {'username': username, 'password': password});
+  _pretty(res);
+  _token = res['token']?.toString();
+}
 
+// -------------- 홈 --------------
+
+Future<void> getIngredients() async {
+  final res = await _get('$apiBase/home/ingredient');
+  _pretty(res);
+}
+
+Future<void> postPreference(List<bool> pref) async {
+  final res = await _post('$apiBase/home/preference', {'preference': pref});
+  _pretty(res);
+}
+
+Future<void> deleteHomeSelection(int recipeId) async {
+  final res = await _delete('$apiBase/home/$recipeId');
+  _pretty(res);
+}
+
+// -------------- 레시피 --------------
+
+Future<void> listRecipes() async {
+  final res = await _get('$apiBase/recipe');
+  _pretty(res);
+}
+
+Future<void> getRecipe(int id) async {
+  final res = await _get('$apiBase/recipe/$id');
+  _pretty(res);
+}
+
+Future<void> likeRecipe(int id) async {
+  final res = await _post('$apiBase/recipe/$id/like', {});
+  _pretty(res);
+}
+
+Future<void> unlikeRecipe(int id) async {
+  final res = await _delete('$apiBase/recipe/$id/like');
+  _pretty(res);
+}
+
+Future<void> listLikedRecipes() async {
+  final res = await _get('$apiBase/recipe/like');
+  _pretty(res);
+}
+
+// -------------- 기록 --------------
+
+Future<void> listRecordedRecipes() async {
+  final res = await _get('$apiBase/record/recipe');
+  _pretty(res);
+}
+
+Future<void> deleteRecordedRecipe(List<String> args) async {
+  _requireArgs(args, 1);
+  final id = args[1];
+
+  final url = '$baseUrl/api/record/$id';
+
+  final response = await _delete(url);
+  print(response);
+}
+
+Future<void> addRecordedRecipe(Map<String, dynamic> recipe) async {
+  final res = await _post('$apiBase/record/recipe', recipe);
+  _pretty(res);
+}
+
+// -------------- 이미지 --------------
+
+Future<void> createImageUrl() async {
+  final res = await _post('$apiBase/imageUrl', {});
+  _pretty(res);
+}
+
+// -------------- HTTP 유틸 --------------
+
+Future<Map<String, dynamic>> _get(String url) async {
   final client = HttpClient();
-  final request = await client.postUrl(uri);
+  try {
+    final req = await client.getUrl(Uri.parse(url));
+    _attachAuth(req);
+    final resp = await req.close();
+    final text = await utf8.decodeStream(resp);
+    final json = jsonDecode(text);
+    return _asMap(json);
+  } finally {
+    client.close();
+  }
+}
 
-  // ✅ 헤더 설정
-  request.headers.contentType = ContentType.json;
+Future<Map<String, dynamic>> _post(String url, Map<String, dynamic> body) async {
+  final client = HttpClient();
+  try {
+    final req = await client.postUrl(Uri.parse(url));
+    _attachAuth(req);
+    req.headers.contentType = ContentType.json;
+    req.write(jsonEncode(body));
+    final resp = await req.close();
+    final text = await utf8.decodeStream(resp);
+    final json = jsonDecode(text);
+    return _asMap(json);
+  } finally {
+    client.close();
+  }
+}
 
-  // ✅ body 쓰기
-  request.write(jsonEncode(preferenceData));
+Future<Map<String, dynamic>> _delete(String url) async {
+  final client = HttpClient();
+  try {
+    final req = await client.openUrl('DELETE', Uri.parse(url));
+    _attachAuth(req);
+    final resp = await req.close();
+    final text = await utf8.decodeStream(resp);
+    final json = jsonDecode(text);
+    return _asMap(json);
+  } finally {
+    client.close();
+  }
+}
 
-  // ✅ 서버 응답 받기
-  final response = await request.close();
-  final reply = await utf8.decodeStream(response);
+void _attachAuth(HttpClientRequest req) {
+  if (_token != null && _token!.isNotEmpty) {
+    req.headers.add(HttpHeaders.authorizationHeader, 'Bearer $_token');
+  }
+}
 
-  print("📩 서버 응답:");
-  print(reply);
+Map<String, dynamic> _asMap(dynamic json) {
+  if (json is Map<String, dynamic>) return json;
+  return {'data': json};
+}
 
-  client.close();
+void _pretty(Map<String, dynamic> data) {
+  final pretty = const JsonEncoder.withIndent('  ').convert(data);
+  print(pretty);
+}
+
+void _requireArgs(List<String> args, int n) {
+  if (args.length < n) {
+    _printUsage();
+    throw ArgumentError('Not enough arguments');
+  }
+}
+
+void _printUsage() {
+  print('''
+사용법:
+  # 온보딩
+  register <username> <password>
+  login <username> <password>
+  token [value]         # 토큰 보기/설정 (Bearer 값, 예: user1 또는 token-user1)
+
+  # 홈
+  ingredient
+  preference <bool,bool,bool,...>   # 예: preference true,false,true,false,true,false,true,false,true,false
+  unselect <recipeId>
+
+  # 레시피
+  recipes
+  recipe <id>
+  like <id>
+  unlike <id>
+  liked
+
+  # 기록
+  recorded
+  addrecord '<json>'   # 예: addrecord '{"name":"내 요리","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://ex/300/400","process":["1","2"]}'
+
+  # 이미지
+  imageurl
+
+예시:
+  dart run client/bin/client.dart register user1 pass1
+  dart run client/bin/client.dart login user1 pass1
+  dart run client/bin/client.dart token user1
+  dart run client/bin/client.dart ingredient
+  dart run client/bin/client.dart preference true,false,true,false,true,false,true,false,true,false
+  dart run client/bin/client.dart unselect 1
+  dart run client/bin/client.dart recipes
+  dart run client/bin/client.dart recipe 1
+  dart run client/bin/client.dart like 1
+  dart run client/bin/client.dart unlike 1
+  dart run client/bin/client.dart liked
+  dart run client/bin/client.dart recorded
+  dart run client/bin/client.dart record-del
+  dart run client/bin/client.dart addrecord '{"name":"내 요리","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://ex/300/400","process":["1","2"]}'
+  dart run client/bin/client.dart record-del 102
+  dart run client/bin/client.dart imageurl
+  
+  유저 정보 조회: curl -X GET http://localhost:8080/api/debug/userinfo
+
+''');
 }

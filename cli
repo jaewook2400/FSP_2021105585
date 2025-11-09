@@ -1,0 +1,2 @@
+#!/bin/bash
+dart run client/bin/client.dart "$@"

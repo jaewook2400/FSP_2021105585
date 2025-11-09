@@ -7,11 +7,10 @@ import 'dart:io';
 final Map<String, String> _userPasswords = {}; // username -> password
 
 Future<void> main() async {
-  final server =
-  await HttpServer.bind(InternetAddress.loopbackIPv4, 8080, shared: true);
+  final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 8080, shared: true);
   print('✅ Server running on http://${server.address.host}:${server.port}');
 
-  await for (final request in server) {
+  await for (final request in server){
     // 공통 헤더 (JSON & CORS)
     _applyCommonHeaders(request.response);
 
@@ -19,7 +18,43 @@ Future<void> main() async {
       final method = request.method;
       final path = request.uri.path; // e.g., /api/recipe/3/like
       final segments = request.uri.pathSegments; // [api, recipe, 3, like]
-      final user = _extractUserFromAuth(request.headers.value(HttpHeaders.authorizationHeader));
+
+      // ✅ 로그용 기본 정보
+      final startedAt = DateTime.now();
+      final ip = request.connectionInfo?.remoteAddress.address ?? '-';
+      final query = request.uri.query.isNotEmpty ? '?${request.uri.query}' : '';
+      final authHeaderForLog = request.headers.value(HttpHeaders.authorizationHeader);
+      final userForLog = _extractUserFromAuth(authHeaderForLog);
+
+// ✅ 응답이 끝난 직후(status 확정) 예쁘게 한 줄 로그
+      request.response.done.then((_) async {
+        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+        final status = request.response.statusCode;
+        _printAccessLog(
+          method: method,
+          path: '$path$query',
+          status: status,
+          ms: elapsed,
+          user: userForLog,
+          ip: ip,
+        );
+      });
+
+// 1) Public API는 토큰 검사 없이 통과
+      if (!_isPublicEndpoint(method, path, segments)) {
+        final authHeader = request.headers.value(HttpHeaders.authorizationHeader);
+
+        // 2) 토큰 없거나 유효하지 않으면 401
+        if (!_validateToken(authHeader)) {
+          _unauthorized(request, 'invalid or missing token');
+          continue;
+        }
+      }
+
+// 3) 토큰이 유효하니 user 추출 가능
+      final user = _extractUserFromAuth(
+          request.headers.value(HttpHeaders.authorizationHeader)
+      );
 
       // --------------- 온보딩 ---------------
 
@@ -289,6 +324,28 @@ Future<void> main() async {
 
 // ----------------- 유틸 -----------------
 
+String _statusMark(int status) {
+  if (status >= 500) return '💥';
+  if (status >= 400) return '⚠️';
+  if (status >= 300) return '🔀';
+  if (status >= 200) return '✅';
+  return 'ℹ️';
+}
+
+void _printAccessLog({
+  required String method,
+  required String path,
+  required int status,
+  required int ms,
+  required String user,
+  required String ip,
+}){
+  final mark = _statusMark(status);
+  final m = method.padRight(6); // GET/POST 정렬
+  // 예: ✅ 200  12ms  GET   /api/recipe/1       👤 user1   🌐 127.0.0.1
+  print('$mark $status  ${ms}ms  $m $path   👤 $user   🌐 $ip');
+}
+
 String _extractUserFromAuth(String? authHeader) {
   // Authorization: Bearer token-<username> 또는 Bearer <username>
   if (authHeader == null) return 'user1';
@@ -302,6 +359,46 @@ String _extractUserFromAuth(String? authHeader) {
   return 'user1';
 }
 
+bool _isPublicEndpoint(String method, String path, List<String> segments) {
+  // POST /api/register
+  if (method == 'POST' && path == '/api/register') return true;
+
+  // POST /api/login
+  if (method == 'POST' && path == '/api/login') return true;
+
+  // POST /api/imageUrl
+  if (method == 'POST' && path == '/api/imageUrl') return true;
+
+  // GET /api/recipe
+  if (method == 'GET' && path == '/api/recipe') return true;
+
+  // GET /api/recipe/:id
+  if (method == 'GET' &&
+      segments.length == 3 &&
+      segments[0] == 'api' &&
+      segments[1] == 'recipe') {
+    return true;
+  }
+
+  return false;
+}
+
+bool _validateToken(String? authHeader) {
+  if (authHeader == null) return false;
+
+  final parts = authHeader.split(' ');
+  if (parts.length != 2 || parts[0].toLowerCase() != 'bearer') return false;
+
+  final token = parts[1];           // token-username
+  if (!token.startsWith('token-')) return false;
+
+  final username = token.substring(6);
+  if (username.isEmpty) return false;
+
+  // 실제 가입한 유저인지 검사
+  return _userPasswords.containsKey(username);
+}
+
 void _applyCommonHeaders(HttpResponse res) {
   res.headers.contentType = ContentType.json;
   // CORS (필요시)
@@ -312,6 +409,7 @@ void _applyCommonHeaders(HttpResponse res) {
 
 Future<Map<String, dynamic>> _readJson(HttpRequest req) async {
   final text = await utf8.decoder.bind(req).join();
+  print("📥 BODY: $text");
   final data = jsonDecode(text);
   if (data is Map<String, dynamic>) return data;
   throw const FormatException('JSON object required');

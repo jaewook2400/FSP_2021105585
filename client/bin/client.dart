@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:client/secure_storage.dart';
 
 const String baseUrl = 'http://localhost:8080';
 const String apiBase = '$baseUrl/api';
@@ -130,6 +131,10 @@ Future<void> login(String username, String password) async {
   final res = await _post('$apiBase/login', {'username': username, 'password': password});
   _pretty(res);
   _token = res['token']?.toString();
+  print(_token);
+  if(_token != null){
+    SecureStorage().saveAccessToken(_token!);
+  }
 }
 
 // -------------- 홈 --------------
@@ -211,7 +216,7 @@ Future<Map<String, dynamic>> _get(String url) async {
   final client = HttpClient();
   try {
     final req = await client.getUrl(Uri.parse(url));
-    _attachAuth(req);
+    await _attachAuth(req);
     final resp = await req.close();
     final text = await utf8.decodeStream(resp);
     final json = jsonDecode(text);
@@ -225,7 +230,7 @@ Future<Map<String, dynamic>> _post(String url, Map<String, dynamic> body) async 
   final client = HttpClient();
   try {
     final req = await client.postUrl(Uri.parse(url));
-    _attachAuth(req);
+    await _attachAuth(req);
     req.headers.contentType = ContentType.json;
     req.write(jsonEncode(body));
     final resp = await req.close();
@@ -241,7 +246,7 @@ Future<Map<String, dynamic>> _delete(String url) async {
   final client = HttpClient();
   try {
     final req = await client.openUrl('DELETE', Uri.parse(url));
-    _attachAuth(req);
+    await _attachAuth(req);
     final resp = await req.close();
     final text = await utf8.decodeStream(resp);
     final json = jsonDecode(text);
@@ -251,9 +256,12 @@ Future<Map<String, dynamic>> _delete(String url) async {
   }
 }
 
-void _attachAuth(HttpClientRequest req) {
-  if (_token != null && _token!.isNotEmpty) {
-    req.headers.add(HttpHeaders.authorizationHeader, 'Bearer $_token');
+Future<void> _attachAuth(HttpClientRequest req) async {
+  final token = await SecureStorage().getAccessToken();
+  print('🔐 attach token: $token');
+
+  if (token != null && token.isNotEmpty) {
+    req.headers.add(HttpHeaders.authorizationHeader, 'Bearer $token');
   }
 }
 
@@ -314,12 +322,13 @@ void _printUsage() {
   dart run client/bin/client.dart unlike 1
   dart run client/bin/client.dart liked
   dart run client/bin/client.dart recorded
-  dart run client/bin/client.dart record-del
   dart run client/bin/client.dart addrecord '{"name":"내 요리","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://ex/300/400","process":["1","2"]}'
   dart run client/bin/client.dart record-del 102
   dart run client/bin/client.dart imageurl
   
-  유저 정보 조회: curl -X GET http://localhost:8080/api/debug/userinfo
+  유저 정보 조회: curl -X GET http://localhost:8080/api/debug/userinfo \
+     -H "Authorization: Bearer token-user1"
+
 
 ''');
 }

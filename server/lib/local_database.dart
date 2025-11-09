@@ -43,37 +43,37 @@ final List<Map<String, dynamic>> recipes = [
 
 //사용자 정보를 나타내는 곳
 final Map<String, dynamic> userInfo = {
-    'user1': {
-        'likedRecipeId': [1, 2], //recordedRecipe는 좋아요를 누를 수 없음. 당연함 내가 먹은 음식을 기록하는 취지의 탭이기 때문에 선호도는 중요하지 않음.
-        'recordedRecipe': <Map<String, dynamic>>[
-            {
-                "recipeId": 101,
-                "name": "계란굴소스볶음밥",
-                "timeToCook": 15,
-                "ingredient": ["계란", "밥"],
-                "description": "계란을 이용한 밥 요리입니다.",
-                "imageUrl": "http://fiscom/300/400",
-                "process": [
-                    "프라이팬에 기름을 부어 달군다.",
-                    "계란과 밥을 넣어 볶는다.",
-                    "기호에 맞게 양념을 추가한다."
-                ]
-            },
-            {
-                "recipeId": 102,
-                "name": "김치삼겹살볶음밥",
-                "timeToCook": 20,
-                "ingredient": ["김치", "밥"],
-                "description": "김치를 이용한 밥 요리입니다.",
-                "imageUrl": "http://fiscom/300/401",
-                "process": [
-                    "프라이팬에 기름을 두르고 김치를 볶는다.",
-                    "밥을 넣고 볶는다.",
-                    "간을 맞춘다."
-                ]
-            },
-        ],
-    }
+    // 'user1': {
+    //     'likedRecipeId': [1, 2], //recordedRecipe는 좋아요를 누를 수 없음. 당연함 내가 먹은 음식을 기록하는 취지의 탭이기 때문에 선호도는 중요하지 않음.
+    //     'recordedRecipe': <Map<String, dynamic>>[
+    //         {
+    //             "recipeId": 101,
+    //             "name": "계란굴소스볶음밥",
+    //             "timeToCook": 15,
+    //             "ingredient": ["계란", "밥"],
+    //             "description": "계란을 이용한 밥 요리입니다.",
+    //             "imageUrl": "http://fiscom/300/400",
+    //             "process": [
+    //                 "프라이팬에 기름을 부어 달군다.",
+    //                 "계란과 밥을 넣어 볶는다.",
+    //                 "기호에 맞게 양념을 추가한다."
+    //             ]
+    //         },
+    //         {
+    //             "recipeId": 102,
+    //             "name": "김치삼겹살볶음밥",
+    //             "timeToCook": 20,
+    //             "ingredient": ["김치", "밥"],
+    //             "description": "김치를 이용한 밥 요리입니다.",
+    //             "imageUrl": "http://fiscom/300/401",
+    //             "process": [
+    //                 "프라이팬에 기름을 두르고 김치를 볶는다.",
+    //                 "밥을 넣고 볶는다.",
+    //                 "간을 맞춘다."
+    //             ]
+    //         },
+    //     ],
+    // }
 };
 
 //AI가 만들어준 레시피라고 가정하기(지금은 목데이터 사용)

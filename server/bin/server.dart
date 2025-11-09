@@ -308,7 +308,16 @@ Future<void> main() async {
 
       // GET /api/debug/userinfo -- 디버깅용 API!!
       if (method == 'GET' && path == '/api/debug/userinfo') {
-        _okJson(request, {'userInfo': userInfo});
+        final pretty = const JsonEncoder.withIndent('  ').convert({
+          'userInfo': userInfo
+        });
+
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json
+          ..write(pretty)
+          ..close();
+
         continue;
       }
 

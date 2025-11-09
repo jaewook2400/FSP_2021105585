@@ -258,7 +258,7 @@ Future<Map<String, dynamic>> _delete(String url) async {
 
 Future<void> _attachAuth(HttpClientRequest req) async {
   final token = await SecureStorage().getAccessToken();
-  print('🔐 attach token: $token');
+  //print('🔐 attach token: $token');
 
   if (token != null && token.isNotEmpty) {
     req.headers.add(HttpHeaders.authorizationHeader, 'Bearer $token');

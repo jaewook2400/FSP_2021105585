@@ -131,10 +131,11 @@ Future<void> login(String username, String password) async {
   final res = await _post('$apiBase/login', {'username': username, 'password': password});
   _pretty(res);
   _token = res['token']?.toString();
-  print(_token);
+  //print(_token);
   if(_token != null){
     SecureStorage().saveAccessToken(_token!);
   }
+  _nextPrompt();
 }
 
 // -------------- 홈 --------------
@@ -142,16 +143,19 @@ Future<void> login(String username, String password) async {
 Future<void> getIngredients() async {
   final res = await _get('$apiBase/home/ingredient');
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> postPreference(List<bool> pref) async {
   final res = await _post('$apiBase/home/preference', {'preference': pref});
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> deleteHomeSelection(int recipeId) async {
   final res = await _delete('$apiBase/home/$recipeId');
   _pretty(res);
+  _nextPrompt();
 }
 
 // -------------- 레시피 --------------
@@ -159,26 +163,31 @@ Future<void> deleteHomeSelection(int recipeId) async {
 Future<void> listRecipes() async {
   final res = await _get('$apiBase/recipe');
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> getRecipe(int id) async {
   final res = await _get('$apiBase/recipe/$id');
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> likeRecipe(int id) async {
   final res = await _post('$apiBase/recipe/$id/like', {});
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> unlikeRecipe(int id) async {
   final res = await _delete('$apiBase/recipe/$id/like');
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> listLikedRecipes() async {
   final res = await _get('$apiBase/recipe/like');
   _pretty(res);
+  _nextPrompt();
 }
 
 // -------------- 기록 --------------
@@ -186,6 +195,7 @@ Future<void> listLikedRecipes() async {
 Future<void> listRecordedRecipes() async {
   final res = await _get('$apiBase/record/recipe');
   _pretty(res);
+  _nextPrompt();
 }
 
 Future<void> deleteRecordedRecipe(List<String> args) async {
@@ -196,11 +206,13 @@ Future<void> deleteRecordedRecipe(List<String> args) async {
 
   final response = await _delete(url);
   print(response);
+  _nextPrompt();
 }
 
 Future<void> addRecordedRecipe(Map<String, dynamic> recipe) async {
   final res = await _post('$apiBase/record/recipe', recipe);
   _pretty(res);
+  _nextPrompt();
 }
 
 // -------------- 이미지 --------------
@@ -208,6 +220,7 @@ Future<void> addRecordedRecipe(Map<String, dynamic> recipe) async {
 Future<void> createImageUrl() async {
   final res = await _post('$apiBase/imageUrl', {});
   _pretty(res);
+  _nextPrompt();
 }
 
 // -------------- HTTP 유틸 --------------
@@ -280,6 +293,11 @@ void _requireArgs(List<String> args, int n) {
     _printUsage();
     throw ArgumentError('Not enough arguments');
   }
+}
+
+void _nextPrompt() {
+  print("\n👉 다음 명령어를 입력하세요:");
+  print("   (예: ingredient, recipes, like 1, recorded, unselect 3 …)\n");
 }
 
 void _printUsage() {

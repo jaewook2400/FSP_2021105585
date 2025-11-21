@@ -340,7 +340,7 @@ void _printUsage() {
   dart run client/bin/client.dart unlike 1
   dart run client/bin/client.dart liked
   dart run client/bin/client.dart recorded
-  dart run client/bin/client.dart addrecord '{"name":"내 요리","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://ex/300/400","process":["1","2"]}'
+  cli addrecord '{"name":"내 요리 2","timeToCook":10,"ingredient":["계란"],"description":"테스트","imageUrl":"http://ex/300/400","process":["1","2"]}'
   dart run client/bin/client.dart record-del 102
   dart run client/bin/client.dart imageurl
   
